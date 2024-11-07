@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from matplotlib.widgets import Cursor
+from matplotlib.animation import FuncAnimation
 
 
 class ProfileGenerator:
@@ -271,7 +272,7 @@ class ProfileGenerator:
             # Mostra entrambi i grafici
             plt.tight_layout()
             plt.show()
-        return  round(Rev_MaxSpeedXAxis, 2), round(Rev_AccAxisX, 2), round(Rev_MaxSpeedYAxis, 3), round(Rev_AccAxisY, 3)
+        return  round(Rev_MaxSpeedXAxis, 2), round(Rev_AccAxisX, 2), round(Rev_MaxSpeedYAxis, 3), round(Rev_AccAxisY, 3), PositionXAxis, PositionYAxis
 
     def calculate_theta(self, X, Y, Xstart, Ystart):
 
@@ -502,7 +503,47 @@ class ProfileGenerator:
 
         return time_profile, position_profile
 
+    def TrajectorySimulator2D (self,X_trajectory,Y_trajectory):
+        # Interpolazione delle traiettorie X e Y
+        interp_points = 200  # Numero di punti di interpolazione
+        t = np.linspace(0, 1, len(X_trajectory))
+        t_new = np.linspace(0, 1, interp_points)
 
+        interp_x = interp1d(t, X_trajectory, kind='linear')
+        interp_y = interp1d(t, Y_trajectory, kind='linear')
+
+        x_interpolated = interp_x(t_new)
+        y_interpolated = interp_y(t_new)
+
+        # Creazione della figura e dell'asse
+        fig, ax = plt.subplots()
+        ax.set_xlim(0, max(X_trajectory))
+        ax.set_ylim(0, max(Y_trajectory))
+        ax.set_xlabel("Posizione Asse X (mm)")
+        ax.set_ylabel("Posizione Asse Y (mm)")
+        ax.set_title("Animazione Traiettoria X-Y")
+        ax.plot(x_interpolated, y_interpolated, color='gray', linestyle='-', label="Traiettoria Interpolata")
+        ax.legend()
+
+        # Punto iniziale per l'animazione
+        point, = ax.plot([], [], 'ro', label="Posizione Attuale")
+        ax.legend()
+
+        # Funzione di inizializzazione
+        def init():
+            point.set_data([], [])
+            return point,
+
+        # Funzione di animazione
+        def animate(i):
+            point.set_data(x_interpolated[i], y_interpolated[i])
+            return point,
+
+        # Creazione dell'animazione
+        ani = FuncAnimation(fig, animate, frames=len(x_interpolated), init_func=init, blit=True, interval=25)
+
+        plt.grid(True)
+        plt.show()
 
 
 
@@ -515,7 +556,8 @@ class ProfileGenerator:
 if __name__ == "__main__":
     # Parametri di esempio
     generator = ProfileGenerator(2.0,0.5,2.0,0.5,38,1000)
-    VelX,AccX,VelY,AccY = generator.SyncCoreXYAxis(0.0,0.0,356.2,456.25, Graph=True)
+    VelX,AccX,VelY,AccY,TjX,TjY = generator.SyncCoreXYAxis(0,0,200,120, Graph=True)
+    generator.TrajectorySimulator2D(TjX,TjY)
     print("Speed X Axis: ", VelX)
     print("Acc/Dec X Axis: ", AccX)
     print("Speed Y Axis: ", VelY)
